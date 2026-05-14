@@ -1,0 +1,14 @@
+{
+  "name": "Spectral AI Studio Ultra",
+  "description": "The definitive premium AI multimedia studio. Professional-grade generation for cinematic videos, 4K reels, Hi-Fi audio, and neural voiceovers with automated cloud mastering.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI Video Generation",
+    "AI Voice Synthesis",
+    "AI Music Creation",
+    "AI Chat Assistant"
+  ]
+}

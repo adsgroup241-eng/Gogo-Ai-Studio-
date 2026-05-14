@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -------------------------------------------------------------------------
+    // Phase 0: Default Deny
+    // -------------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Global Helpers
+    // -------------------------------------------------------------------------
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function verified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // -------------------------------------------------------------------------
+    // Users Collection
+    // -------------------------------------------------------------------------
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.plan in ['free', 'pro', 'studio']
+        && (data.get('displayName', null) == null || (data.displayName is string && data.displayName.size() <= 128))
+        && (data.get('photoURL', null) == null || (data.photoURL is string && data.photoURL.size() <= 512))
+        && (data.get('isAdmin', null) == null || data.isAdmin is bool)
+        && (data.get('createdAt', null) == null || data.createdAt is timestamp)
+        && (data.get('updatedAt', null) == null || data.updatedAt is timestamp);
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      allow create: if verified() && isOwner(userId) 
+        && isValidUser(incoming())
+        && incoming().plan == 'free' 
+        && (!incoming().keys().hasAny(['isAdmin']) || incoming().isAdmin == false)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+        
+      allow update: if verified() && isOwner(userId)
+        && isValidUser(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().plan == existing().plan
+        && incoming().updatedAt == request.time;
+        
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Projects Collection
+    // -------------------------------------------------------------------------
+    function isValidProject(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && data.type in ['video', 'voice', 'music', 'ad', 'assistant']
+        && data.status in ['queued', 'processing', 'completed', 'failed']
+        && data.prompt is string && data.prompt.size() <= 10000
+        && (data.get('title', null) == null || (data.title is string && data.title.size() <= 256))
+        && (data.get('description', null) == null || (data.description is string && data.description.size() <= 1024))
+        && (data.get('resultUrl', null) == null || (data.resultUrl is string && data.resultUrl.size() <= 1024))
+        && (data.get('thumbnailUrl', null) == null || (data.thumbnailUrl is string && data.thumbnailUrl.size() <= 1024))
+        && (data.get('aspectRatio', null) == null || (data.aspectRatio is string && data.aspectRatio.size() <= 32))
+        && (data.get('voice', null) == null || (data.voice is string && data.voice.size() <= 128))
+        && (data.get('isPublic', null) == null || data.isPublic is bool);
+    }
+
+    match /projects/{projectId} {
+      allow get: if isOwner(existing().userId) || (existing().get('isPublic', false) == true);
+      allow list: if verified() && resource.data.userId == request.auth.uid;
+
+      allow create: if verified() && isOwner(incoming().userId)
+        && isValidProject(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+        
+      allow update: if verified() && isOwner(existing().userId)
+        && isValidProject(incoming())
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'isPublic', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'resultUrl', 'thumbnailUrl', 'updatedAt'])
+        )
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+        
+      allow delete: if isOwner(existing().userId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Chats Collection
+    // -------------------------------------------------------------------------
+    match /chats/{chatId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if verified() && resource.data.userId == request.auth.uid;
+      
+      allow create: if verified() && isOwner(incoming().userId)
+        && incoming().createdAt == request.time;
+        
+      allow update: if verified() && isOwner(existing().userId)
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'updatedAt'])
+        && incoming().updatedAt == request.time;
+        
+      allow delete: if isOwner(existing().userId);
+    }
+  }
+}

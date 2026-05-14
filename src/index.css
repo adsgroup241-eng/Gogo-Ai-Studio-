@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme {
+  --font-sans: "Outfit", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-background: #050508;
+  --color-foreground: #ffffff;
+  
+  --color-primary: #00f2ff;
+  --color-primary-foreground: #000000;
+  
+  --color-secondary: #7000ff;
+  --color-secondary-foreground: #ffffff;
+  
+  --color-muted: #111118;
+  --color-muted-foreground: #8E9299;
+  
+  --color-accent: #00f2ff;
+  --color-accent-foreground: #000000;
+  
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-input: rgba(255, 255, 255, 0.05);
+  --color-ring: #00f2ff;
+}
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    --background: 240 10% 2%;
+    --foreground: 0 0% 100%;
+    --card: 240 10% 5%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 10% 2%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 182 100% 50%;
+    --primary-foreground: 182 100% 0%;
+    --secondary: 266 100% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 10% 10%;
+    --muted-foreground: 215 5% 60%;
+    --accent: 182 100% 50%;
+    --accent-foreground: 182 100% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 12%;
+    --input: 240 10% 12%;
+    --ring: 182 100% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    background: radial-gradient(circle at 0% 0%, rgba(112,0,255,0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(0,242,255,0.1) 0%, transparent 40%),
+                #050508;
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-bold;
+  }
+}
+
+@utility glass-card {
+  @apply bg-white/3 backdrop-blur-2xl border border-white/10 shadow-2xl;
+}
+
+@utility neon-gradient {
+  background: linear-gradient(135deg, #00f2ff 0%, #7000ff 100%);
+}
+
+@utility neon-text {
+  @apply text-transparent bg-clip-text neon-gradient;
+}
+
+@utility status-pill {
+  @apply bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-primary/20 uppercase tracking-widest;
+}
+
+@utility prompt-box {
+  @apply bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 flex items-center gap-4 transition-all focus-within:border-primary/50 focus-within:bg-white/10;
+}
+
+@utility panel-title {
+  @apply text-[11px] uppercase tracking-[0.2em] font-bold text-muted-foreground mb-4 block;
+}
+
+.markdown-body {
+  @apply text-foreground leading-relaxed;
+}
+
+.markdown-body p {
+  @apply mb-4 last:mb-0;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  @apply mt-6 mb-4 font-bold;
+}
+
+.markdown-body ul, .markdown-body ol {
+  @apply mb-4 pl-6;
+}
+
+.markdown-body li {
+  @apply mb-1;
+}
+
+.markdown-body code {
+  @apply bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.markdown-body pre {
+  @apply bg-black/50 p-4 rounded-xl border border-white/5 my-4 overflow-x-auto font-mono text-sm;
+}
