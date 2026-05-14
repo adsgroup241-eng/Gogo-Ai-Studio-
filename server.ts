@@ -1,16 +1,18 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import fs from 'fs';
+import admin from 'firebase-admin';
 
 // Load Firebase Config
 const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
 
-// Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+// Initialize Firebase Admin (to bypass security rules)
+admin.initializeApp({
+  projectId: firebaseConfig.projectId,
+});
+
+const db = admin.firestore(firebaseConfig.firestoreDatabaseId);
 
 const PROJECT_DURATIONS: Record<string, number> = {
   video: 240,    // 4 mins
@@ -36,17 +38,15 @@ async function runNeuralProcessor() {
   
   while (true) {
     try {
-      const q = query(
-        collection(db, 'projects'),
-        where('status', '==', 'processing')
-      );
+      const q = db.collection('projects')
+        .where('status', '==', 'processing');
       
-      const snapshot = await getDocs(q);
+      const snapshot = await q.get();
       const now = Date.now();
       
       for (const projectDoc of snapshot.docs) {
         const data = projectDoc.data();
-        const createdAt = data.createdAt as Timestamp;
+        const createdAt = data.createdAt as admin.firestore.Timestamp;
         if (!createdAt) continue;
         
         const startTime = createdAt.toMillis();
@@ -54,7 +54,7 @@ async function runNeuralProcessor() {
         
         if (now - startTime >= duration) {
           console.log(`✅ Neural Processor: Finalizing project ${projectDoc.id} (${data.type})`);
-          await updateDoc(doc(db, 'projects', projectDoc.id), {
+          await projectDoc.ref.update({
             status: 'completed',
             url: MOCK_FILES[data.type] || MOCK_FILES.video,
             metadata: {
@@ -63,7 +63,7 @@ async function runNeuralProcessor() {
               quality: '4K Ultra HD',
               frameRate: '60fps'
             },
-            updatedAt: serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
         }
       }
